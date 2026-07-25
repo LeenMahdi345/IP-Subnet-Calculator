@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IP &amp; Subnet Calculator</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <main class="container">
+        <h1>IP Address &amp; Subnet Calculator</h1>
+
+        <form method="POST" class="calc-form">
+            <div class="field">
+                <label for="mode">Mode</label>
+                <select id="mode" name="mode" onchange="toggleMode()">
+                    <option value="normal" {{ 'selected' if mode != 'reverse' }}>
+                        Normal Calculator
+                    </option>
+                    <option value="reverse" {{ 'selected' if mode == 'reverse' }}>
+                        Reverse CIDR
+                    </option>
+                </select>
+            </div>
+
+            <!-- Normal Calculator fields -->
+            <div id="normal-fields">
+                <div class="field">
+                    <label for="ip_cidr">IP Address + CIDR</label>
+                    <input type="text" id="ip_cidr" name="ip_cidr"
+                           placeholder="192.168.1.50/24"
+                           value="{{ ip_cidr }}">
+                </div>
+
+                <div class="field">
+                    <label for="subnet_count">Number of subnets (optional)</label>
+                    <input type="number" id="subnet_count" name="subnet_count"
+                           min="1" placeholder="e.g. 4"
+                           value="{{ subnet_count }}">
+                </div>
+            </div>
+
+            <!-- Reverse CIDR fields -->
+            <div id="reverse-fields">
+                <div class="field">
+                    <label for="ip1">First IP Address</label>
+                    <input type="text" id="ip1" name="ip1"
+                           placeholder="192.168.1.10"
+                           value="{{ ip1 }}">
+                </div>
+
+                <div class="field">
+                    <label for="ip2">Second IP Address</label>
+                    <input type="text" id="ip2" name="ip2"
+                           placeholder="192.168.1.200"
+                           value="{{ ip2 }}">
+                </div>
+            </div>
+
+            <button type="submit">Calculate</button>
+        </form>
+
+        {% if error %}
+            <p class="error">{{ error }}</p>
+        {% endif %}
+
+        {% if reverse_result %}
+            <h2>Reverse CIDR Result</h2>
+            <table class="results">
+                <tbody>
+                    <tr>
+                        <th>Smallest CIDR Block</th>
+                        <td>{{ reverse_result }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        {% endif %}
+
+        {% if results %}
+            <h2>Results</h2>
+            <table class="results">
+                <tbody>
+                    {% for key, value in results.items() %}
+                        <tr>
+                            <th>{{ key }}</th>
+                            <td>{{ value }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+
+        {% if subnets %}
+            <h2>Generated Subnets</h2>
+            <ul class="subnets">
+                {% for subnet in subnets %}
+                    <li>{{ subnet }}</li>
+                {% endfor %}
+            </ul>
+
+            <h3 class="viz-title">Address Space Split</h3>
+            <div class="subnet-bar" role="img"
+                 aria-label="Address space divided into {{ subnets|length }} equal subnets">
+                {% for subnet in subnets %}
+                    {# each subnet is an equal slice of the address space #}
+                    {% set label = subnet.split(': ') %}
+                    <div class="subnet-segment"
+                         style="width: {{ (100 / subnets|length) }}%;"
+                         title="{{ subnet }}">
+                        <span class="seg-name">{{ label[0] }}</span>
+                        {% if label|length > 1 %}
+                            <span class="seg-range">{{ label[1] }}</span>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </main>
+
+    <script>
+        function toggleMode() {
+            var mode = document.getElementById("mode").value;
+            var normal = document.getElementById("normal-fields");
+            var reverse = document.getElementById("reverse-fields");
+
+            var isReverse = (mode === "reverse");
+
+            normal.style.display = isReverse ? "none" : "block";
+            reverse.style.display = isReverse ? "block" : "none";
+
+            // Only the visible fields should be required
+            document.getElementById("ip_cidr").required = !isReverse;
+            document.getElementById("ip1").required = isReverse;
+            document.getElementById("ip2").required = isReverse;
+        }
+
+        // Apply the correct state on page load (keeps mode after submit)
+        toggleMode();
+    </script>
+</body>
+</html>
